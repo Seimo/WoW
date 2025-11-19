@@ -1,0 +1,7 @@
+<Project>
+    <PropertyGroup>
+        <Version>1.0.1.0</Version>
+        <Authors>Christoph Schaefer</Authors>
+        <Copyright>© 2025 $(Authors)</Copyright>
+    </PropertyGroup>
+</Project>

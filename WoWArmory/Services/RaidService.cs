@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
 using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
-using Guild = WoWArmory.Contracts.Models.Guild;
 
 namespace WoWArmory.Services;
 
@@ -53,7 +52,7 @@ public class RaidService(
         var raid = await GetRaidAsync(id);
         if (raid == null) return null;
 
-        CharacterService.AddCharactersToUpdateQueue(raid.Characters);
+        CharacterService.AddCharactersToUpdateQueue(raid.Characters, false);
         ExecuteUpdateQueue();
         return raid;
     }
@@ -89,14 +88,17 @@ public class RaidService(
         return raid;
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
     {
-       CharacterService.UpdateCharacter(character, saveChanges);
-    }
-
-    protected override void UpdateGuild(Guild guild)
-    {
+        switch (entity.EntityType)
+        {
+            case QueueEntity.EntityTypeEnum.Character:
+                CharacterService.UpdateCharacter(entity.Id, entity.UpdateReferences, false);
+                break;
+        }
         
+        if (saveChanges)
+            SaveChanges();
     }
     
 }

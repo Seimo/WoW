@@ -1,7 +1,6 @@
 using ArgentPonyWarcraftClient;
 using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
-using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
 using Guild = WoWArmory.Contracts.Models.Guild;
 
@@ -19,8 +18,15 @@ public class GuildService(
     {
         return DbContext.Guilds;
     }
+    
+    public Guild? GetGuild(Guid id)
+    {
+        return GetGuilds()
+            .Include(c => c.Realm)
+            .FirstOrDefault(c => c.Id == id);
+    }
 
-    public async Task<Guild?> GetGuild(Guid id)
+    public async Task<Guild?> GetGuildAsync(Guid id)
     {
         return await DbContext.Guilds
             .Include(g => g.Realm)
@@ -35,39 +41,16 @@ public class GuildService(
         return GetGuilds().FirstOrDefault(g => g.Name.ToLower() == name.ToLower());
     }
 
-    public Guild? UpdateGuild(Guid id)
-    {
-        var guild = DbContext.Guilds
-            .Include(g => g.Realm)
-            .Include(g => g.Members)
-            .ThenInclude(c => c.CharacterHistories)
-            .Include(m => m.Realm)
-            .FirstOrDefault(g => g.Id == id);
-
-        if (guild == null) return null;
-
-        if (guild.Realm?.Name == null) return guild;
-        UpdateGuild(guild);
-        ExecuteUpdateQueue();
-        return guild;
-    }
-
     private async Task<GuildRoster?> GetGuildRoster(string realmName, string guildName)
     {
         // Retrieve the character profile for Drinian of realm Norgannon.
         var result = await WarcraftClient.GetGuildRosterAsync(realmName.Replace(" ", "-").ToLower(),
-            guildName.Replace(" ", "-").ToLower(), "profile-eu");
+            guildName.Replace(" ", "-").ToLower(), ProfileNamespace);
         return !result.Success ? null : result.Value;
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
+    private void UpdateGuildFromArmory(Guild guild, bool saveChanges)
     {
-        CharacterService.UpdateCharacter(character, saveChanges);
-    }
-
-    protected override void UpdateGuild(Guild guild)
-    {
-        guild.QueueStart = DateTime.UtcNow;
         var guildRosterTask = GetGuildRoster(guild.Realm?.Name, guild.Name);
         if (guildRosterTask == null) return;
 
@@ -89,19 +72,18 @@ public class GuildService(
 
             if (character != null)
             {
-                CharacterService.AddCharacterToUpdateQueue(character);
+                CharacterService.AddCharacterToUpdateQueue(character, false);
             }
             else
             {
                 character = CharacterService.GetCharacter(guildRosterMember.Character.Id);
                 if (character != null)
                 {
-                    CharacterService.AddCharacterToUpdateQueue(character);
+                    CharacterService.AddCharacterToUpdateQueue(character, false);
                 }
                 else
                 {
-                    var characterTask = CharacterService.GetCharacterFromArmory(guildRosterMember.Character.Name,
-                        guildRosterMember.Character.Realm.Slug);
+                    var characterTask = CharacterService.GetCharacterFromArmory(guildRosterMember.Character.Name, guildRosterMember.Character.Realm.Slug, false);
                     if (characterTask == null) continue;
 
                     character = characterTask.Result;
@@ -110,5 +92,26 @@ public class GuildService(
                 }
             }
         }
+    }
+
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
+    {
+        switch (entity.EntityType)
+        {
+            case QueueEntity.EntityTypeEnum.Character:
+                CharacterService.UpdateCharacter(entity.Id, entity.UpdateReferences, false);
+                break;
+            case QueueEntity.EntityTypeEnum.Guild:
+            {
+                var guild = GetGuild(entity.Id);
+                if (guild == null) return;
+        
+                UpdateGuildFromArmory(guild, false);
+                break;
+            }
+        }
+
+        if (saveChanges)
+            SaveChanges();
     }
 }

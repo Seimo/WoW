@@ -26,7 +26,7 @@ public abstract class BaseService : BlizzardApiService
         DbContext = dbContext;
     }
     
-    protected static Queue<BaseEntity> UpdateQueue { get; set; } = new();
+    protected static Queue<QueueEntity> UpdateQueue { get; set; } = new();
     // protected static Queue<Character> CharacterUpdateQueue { get; set; } = new();
 
     private WarcraftLogsApiClient WarcraftLogsApi { get; }
@@ -51,6 +51,20 @@ public abstract class BaseService : BlizzardApiService
     {
         await DbContext.SaveChangesAsync();
     }
+    
+    public void AddToUpdateQueue(Guid id, QueueEntity.EntityTypeEnum type, bool updateReferences)
+    {
+        if (UpdateQueue.Any(e => e.Id == id)) return;
+        
+        var entity = new QueueEntity
+        {
+            Id = id, 
+            EntityType = type,
+            QueueStart = DateTime.UtcNow,
+            UpdateReferences = updateReferences
+        };
+        UpdateQueue.Enqueue(entity);
+    }
 
     public void ExecuteUpdateQueue()
     {
@@ -59,15 +73,7 @@ public abstract class BaseService : BlizzardApiService
             var entity = UpdateQueue.Dequeue();
             try
             {
-                switch (entity)
-                {
-                    case Character character:
-                        UpdateCharacter(character, false);
-                        break;
-                    case Guild guild:
-                        UpdateGuild(guild);
-                        break;
-                }
+                UpdateEntity(entity, false);
             }
             catch (Exception e)
             {
@@ -81,8 +87,7 @@ public abstract class BaseService : BlizzardApiService
         SaveChanges();
     }
 
-    public abstract void UpdateCharacter(Character character, bool saveChanges);
-    protected abstract void UpdateGuild(Guild guild);
+    protected abstract void UpdateEntity(QueueEntity entity, bool saveChanges);
     
     #region Realm
     private List<Realm> Realms { get; set; } = new();
@@ -165,12 +170,12 @@ public abstract class BaseService : BlizzardApiService
         var realms = new List<Realm>();
 
         // Retrieve the realms de
-        var result = await WarcraftClient.GetRealmsIndexAsync("dynamic-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
+        var result = await WarcraftClient.GetRealmsIndexAsync(DynamicNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
         if (result.Success)
             realms.AddRange(result.Value.Realms.Select(r => new Realm { Name = r.Slug, DisplayName = r.Name }));
 
         // Retrieve the realms en
-        result = await WarcraftClient.GetRealmsIndexAsync("dynamic-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
+        result = await WarcraftClient.GetRealmsIndexAsync(DynamicNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
         if (result.Success)
             foreach (var realmReference in result.Value.Realms)
             {
@@ -179,7 +184,7 @@ public abstract class BaseService : BlizzardApiService
             }
 
         // Retrieve the realms fr
-        result = await WarcraftClient.GetRealmsIndexAsync("dynamic-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
+        result = await WarcraftClient.GetRealmsIndexAsync(DynamicNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
         if (result.Success)
             foreach (var realmReference in result.Value.Realms)
             {
@@ -274,13 +279,13 @@ public abstract class BaseService : BlizzardApiService
         var charClasses = new List<CharacterClass>();
 
         // Retrieve the races de
-        var result = await WarcraftClient.GetPlayableClassesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
+        var result = await WarcraftClient.GetPlayableClassesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
         if (result.Success)
             charClasses.AddRange(result.Value.Classes.Select(playableClassReference => new CharacterClass
                 { Id = playableClassReference.Id, Name = playableClassReference.Name }));
 
         // Retrieve the races en
-        result = await WarcraftClient.GetPlayableClassesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
+        result = await WarcraftClient.GetPlayableClassesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
         if (result.Success)
             foreach (var playableClassReference in result.Value.Classes)
             {
@@ -289,7 +294,7 @@ public abstract class BaseService : BlizzardApiService
             }
 
         // Retrieve the races fr
-        result = await WarcraftClient.GetPlayableClassesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
+        result = await WarcraftClient.GetPlayableClassesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
         if (result.Success)
             foreach (var playableClassReference in result.Value.Classes)
             {
@@ -384,13 +389,13 @@ public abstract class BaseService : BlizzardApiService
         var races = new List<Race>();
 
         // Retrieve the races de
-        var result = await WarcraftClient.GetPlayableRacesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
+        var result = await WarcraftClient.GetPlayableRacesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.de_DE);
         if (result.Success)
             races.AddRange(result.Value.Races.Select(playableRaceReference =>
                 new Race { Id = playableRaceReference.Id, Name = playableRaceReference.Name }));
 
         // Retrieve the races en
-        result = await WarcraftClient.GetPlayableRacesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
+        result = await WarcraftClient.GetPlayableRacesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.en_GB);
         if (result.Success)
             foreach (var playableRaceReference in result.Value.Races)
             {
@@ -399,7 +404,7 @@ public abstract class BaseService : BlizzardApiService
             }
 
         // Retrieve the races fr
-        result = await WarcraftClient.GetPlayableRacesIndexAsync("static-eu", ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
+        result = await WarcraftClient.GetPlayableRacesIndexAsync(StaticNamespace, ArgentPonyWarcraftClient.Region.Europe, ArgentPonyWarcraftClient.Locale.fr_FR);
         if (result.Success)
             foreach (var playableRaceReference in result.Value.Races)
             {

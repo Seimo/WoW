@@ -1,9 +1,7 @@
-using ArgentPonyWarcraftClient;
 using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
 using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
-using Guild = WoWArmory.Contracts.Models.Guild;
 
 namespace WoWArmory.Services;
 
@@ -48,7 +46,7 @@ public class CommunityService(
         var community = await GetCommunity(id);
         if (community == null) return null;
 
-        CharacterService.AddCharactersToUpdateQueue(community.Characters);
+        CharacterService.AddCharactersToUpdateQueue(community.Characters, false);
         ExecuteUpdateQueue();
         return community;
     }
@@ -83,13 +81,16 @@ public class CommunityService(
         return true;
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
     {
-        CharacterService.UpdateCharacter(character, saveChanges);
-    }
+        switch (entity.EntityType)
+        {
+            case QueueEntity.EntityTypeEnum.Character:
+                CharacterService.UpdateCharacter(entity.Id, entity.UpdateReferences, false);
+                break;
+        }
 
-    protected override void UpdateGuild(Guild guild)
-    {
-       
+        if (saveChanges)
+            SaveChanges();
     }
 }

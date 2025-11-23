@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
 using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
-using Guild = WoWArmory.Contracts.Models.Guild;
 
 namespace WoWArmory.Services;
 
@@ -32,9 +31,8 @@ public class WoWAccountService(
         if (summary.Result == null)
         {
             foreach (var character in user.Characters)
-            {
-                CharacterService.AddCharacterToUpdateQueue(character);
-            }
+                CharacterService.AddCharacterToUpdateQueue(character, false);
+            
             ExecuteUpdateQueue();
             return GetCharacters(user);
         }
@@ -67,7 +65,7 @@ public class WoWAccountService(
                 CharacterService.AddCharacter(dbCharacter, false);
             }
 
-            CharacterService.AddCharacterToUpdateQueue(dbCharacter);
+            CharacterService.AddCharacterToUpdateQueue(dbCharacter, false);
         }
 
         ExecuteUpdateQueue();
@@ -81,7 +79,7 @@ public class WoWAccountService(
         {
             
             
-            var result = await WarcraftClient.GetAccountProfileSummaryAsync(accessToken, "profile-eu");
+            var result = await WarcraftClient.GetAccountProfileSummaryAsync(accessToken, ProfileNamespace);
             return !result.Success ? null : result.Value;
         }
         catch (Exception e)
@@ -91,12 +89,7 @@ public class WoWAccountService(
         return null;
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
-    {
-        CharacterService.UpdateCharacter(character, saveChanges);
-    }
-
-    protected override void UpdateGuild(Guild guild)
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
     {
     }
 }

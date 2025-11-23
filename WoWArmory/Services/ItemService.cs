@@ -1,8 +1,7 @@
 using ArgentPonyWarcraftClient;
+using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
-using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
-using Guild = WoWArmory.Contracts.Models.Guild;
 using Item = WoWArmory.Contracts.Models.Item;
 
 namespace WoWArmory.Services;
@@ -12,6 +11,13 @@ public class ItemService(
     ArmoryApiClient warcraftClientApi,
     WarcraftLogsApiClient warcraftLogsClientApi) : BaseService(dbContext, warcraftClientApi, warcraftLogsClientApi)
 {
+
+    public async Task<Item?> GetItemAsync(int itemId)
+    {
+        return await DbContext.Items
+            .FirstOrDefaultAsync(c => c.ItemId == itemId);
+    }
+    
     public Item GetItem(int itemId, string name, string description, string quality, string type)
     {
         var item = DbContext.Items.FirstOrDefault(i => i.ItemId == itemId);
@@ -30,13 +36,38 @@ public class ItemService(
         return item;
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
+    public async Task<Item?> GetItemFromArmory(int itemId)
     {
+        var result = await WarcraftClient.GetItemAsync(itemId, ProfileNamespace, Region, Locale.de_DE);
+        if (!result.Success)
+            return null;    
         
+        var itemSummary = result.Value;
+        if (itemSummary == null) return null;
+
+        var item = new Item
+        {
+            ItemId = itemId,
+            Name = itemSummary.Name,
+            Description = itemSummary.Name,
+            Quality = itemSummary.Quality.Type,
+            Type = itemSummary.InventoryType.Type,
+            Level = itemSummary.Level,
+            RequiredLevel = itemSummary.RequiredLevel,
+            PurchasePrice = itemSummary.PurchasePrice,
+            PurchaseQuantity = itemSummary.PurchaseQuantity,
+            SellPrice = itemSummary.SellPrice,
+            MaxCount = itemSummary.MaxCount,
+            IsEquippable = itemSummary.IsEquippable,
+            IsStackable = itemSummary.IsStackable
+        };
+        DbContext.Items.Add(item);
+
+        return item;
     }
 
-    protected override void UpdateGuild(Guild guild)
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
     {
-      
+        
     }
 }

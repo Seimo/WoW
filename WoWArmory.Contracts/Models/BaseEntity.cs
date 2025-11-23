@@ -9,5 +9,4 @@ public class BaseEntity
     [Key] public Guid Id { get; set; } = Guid.NewGuid();
 
     [NotMapped] [JsonIgnore] public bool HasChanges { get; set; }
-    [NotMapped] [JsonIgnore] public DateTime QueueStart { get; set; }
 }

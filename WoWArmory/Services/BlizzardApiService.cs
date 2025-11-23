@@ -24,6 +24,27 @@ public class BlizzardApiService
     protected string ClientId { get; set; }
     protected string ClientSecret { get; set; }
     protected Region Region { get; set; } 
+    //public Enums.Region Region { get; set; } =  Enums.Region.Europe;
+
+    private string BaseNamespace
+    {
+        get
+        {
+            return Region switch
+            {
+                Region.Europe => "eu",
+                Region.Korea => "kr",
+                Region.Taiwan => "tw",
+                Region.China => "cn",
+                Region.US => "us",
+                _ => "eu"
+            };
+        }
+    } 
+
+    protected string ProfileNamespace => $"profile-{BaseNamespace}";
+    protected string StaticNamespace => $"static-{BaseNamespace}";
+    protected string DynamicNamespace => $"dynamic-{BaseNamespace}";
     
     protected async Task<BlizzardAccessToken?> GetOAuthTokenAsync()
     {

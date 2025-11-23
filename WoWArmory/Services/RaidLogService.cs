@@ -1,9 +1,7 @@
-using ArgentPonyWarcraftClient;
 using Microsoft.EntityFrameworkCore;
 using WoWArmory.Context;
 using WoWArmory.Contracts.Models;
 using WoWArmory.Models;
-using Guild = WoWArmory.Contracts.Models.Guild;
 
 namespace WoWArmory.Services;
 
@@ -116,12 +114,7 @@ public class RaidLogService(
         }
     }
 
-    public override void UpdateCharacter(Character character, bool saveChanges)
-    {
-      
-    }
-
-    protected override void UpdateGuild(Guild guild)
+    protected override void UpdateEntity(QueueEntity entity, bool saveChanges)
     {
     
     }

@@ -5,6 +5,12 @@
         <Nullable>enable</Nullable>
         <TargetFramework>net10.0</TargetFramework>
         <LangVersion>default</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>WoWArmory</Title>
+        <PackageLicenseUrl>https://github.com/Seimo/WoW/blob/main/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/Seimo/WoW</RepositoryUrl>
+        <RepositoryType>GitHub</RepositoryType>
+        <PackageTags>WoW Armory</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>

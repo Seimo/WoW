@@ -5,6 +5,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageLicenseUrl>https://github.com/Seimo/WoW/blob/main/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/Seimo/WoW</RepositoryUrl>
+        <PackageTags>WoW WarcraftLogs</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
